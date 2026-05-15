@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetworkBuster OS - Command Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        :root {
+            --primary: #0ff;
+            --bg: #050510;
+            --glass: rgba(0, 255, 255, 0.05);
+            --danger: #ff003c;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+        }
+        .telemetry-bar {
+            display: flex;
+            gap: 20px;
+        }
+        .telemetry-item {
+            background: rgba(0, 20, 20, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
+        .telemetry-label {
+            font-size: 12px;
+            color: #66b3b3;
+            margin-bottom: 5px;
+        }
+        .telemetry-value {
+            font-size: 20px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: var(--glass);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--primary);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            transform-origin: left;
+        }
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+        .card h2 {
+            color: var(--primary);
+            letter-spacing: 2px;
+            margin-top: 0;
+        }
+        .card p {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .logout {
+            color: var(--danger);
+            text-decoration: none;
+            border: 1px solid var(--danger);
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .logout:hover {
+            background: var(--danger);
+            color: #000;
+            box-shadow: 0 0 15px var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Command Dashboard</h1>
+        <div class="telemetry-bar">
+            <div class="telemetry-item">
+                <span class="telemetry-label">CPU_USAGE</span>
+                <span class="telemetry-value" id="cpu-val">--%</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">MEM_USAGE</span>
+                <span class="telemetry-value" id="mem-val">--%</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">NET_PING</span>
+                <span class="telemetry-value" id="ping-val">--ms</span>
+            </div>
+        </div>
+        <a href="/" class="logout">TERMINATE_LINK</a>
+    </div>
+
+    <div class="grid">
+        <a href="/liquidations" class="card">
+            <h2>LIQUIDATIONS</h2>
+            <p>Execute forced asset re-allocation and manage distressed portfolios in real-time.</p>
+        </a>
+        <a href="/forensics" class="card">
+            <h2>FORENSICS</h2>
+            <p>Deep-dive into transaction ledgers, audit trails, and anomaly detection.</p>
+        </a>
+        <a href="/yield_ops" class="card">
+            <h2>YIELD OPS</h2>
+            <p>Monitor high-frequency trading strategies and optimize passive revenue streams.</p>
+        </a>
+        <a href="/lien_registry" class="card">
+            <h2>LIEN REGISTRY</h2>
+            <p>Immutable ledger of secured claims and collateralized obligations.</p>
+        </a>
+    </div>
+
+    <script>
+        async function fetchTelemetry() {
+            try {
+                const response = await fetch('/api/telemetry');
+                const data = await response.json();
+                
+                document.getElementById('cpu-val').innerText = data.cpu + '%';
+                document.getElementById('mem-val').innerText = data.memory + '%';
+                // Mock ping for aesthetic
+                document.getElementById('ping-val').innerText = Math.floor(Math.random() * 20 + 10) + 'ms';
+            } catch (error) {
+                console.error("Telemetry link lost", error);
+            }
+        }
+
+        // Fetch immediately, then every 2 seconds
+        fetchTelemetry();
+        setInterval(fetchTelemetry, 2000);
+    </script>
+</body>
+</html>
