@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetworkBuster | Orbital Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root {
+            --bg: #0a0b10;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.05) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            background: linear-gradient(to right, #3b82f6, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 1rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Terminal Chat */
+        .chat-container {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .user-prompt {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .gemini-prompt {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .chat-input-wrapper {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 1rem;
+            border: 1px solid var(--glass-border);
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        /* Market Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-dim);
+            font-weight: 500;
+            padding: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .tag {
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-high { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .tag-mid { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .tag-low { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .port-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .port-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+            border: 1px solid var(--glass-border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .port-number {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .port-service {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+        }
+
+        .refresh-btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">NetworkBuster LUNA</div>
+            <div class="status-badge">
+                <div class="pulse"></div>
+                SYSTEM ONLINE | M2M LINK ACTIVE
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="main-col">
+                <div class="card">
+                    <div class="card-title">PreciseLiens Market Intelligence</div>
+                    <div class="stats-row" id="market-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Total Value Locked</div>
+                            <div class="stat-value" id="tvl">$0.00B</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Active Liens</div>
+                            <div class="stat-value" id="active-liens">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">System Health</div>
+                            <div class="stat-value" id="health">0.0%</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Protocol</th>
+                                <th>Supply APY</th>
+                                <th>Borrow APY</th>
+                                <th>TVL</th>
+                                <th>Utilization</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rates-body">
+                            <!-- Data injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Cislunar Telemetry Hub</div>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">Real-time feed from orbital defense nodes and lunar bases.</p>
+                    <div id="live-feed" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+                        <!-- Feed items here -->
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <div class="card chat-container">
+                    <div class="card-title">Gemini Mission Control</div>
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="message">
+                            <span class="gemini-prompt">Gemini:</span> System initialized. Awaiting orbital commands...
+                        </div>
+                    </div>
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="chat-input" placeholder="Type a command (e.g. /market)..." autocomplete="off">
+                        <button id="send-btn">SEND</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title" style="justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span>Selected Ports</span>
+                        </div>
+                        <button class="refresh-btn" 
+                                hx-get="/api/ports/fragment" 
+                                hx-target="#port-list" 
+                                hx-trigger="click">
+                            REFRESH
+                        </button>
+                    </div>
+                    <div id="port-list" 
+                         hx-get="/api/ports/fragment" 
+                         hx-trigger="load, every 30s" 
+                         hx-swap="innerHTML">
+                        <div style="text-align: center; color: var(--text-dim); padding: 1rem;">
+                            Scanning local nexus...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchMarketData() {
+            try {
+                const response = await fetch('/api/market');
+                const data = await response.json();
+                
+                document.getElementById('tvl').innerText = '$' + (data.market.tvl_usd / 1e9).toFixed(2) + 'B';
+                document.getElementById('active-liens').innerText = data.market.active_liens.toLocaleString();
+                document.getElementById('health').innerText = data.market.avg_collat_ratio.toFixed(1) + '%';
+
+                const ratesBody = document.getElementById('rates-body');
+                ratesBody.innerHTML = '';
+                data.rates.forEach(r => {
+                    const row = `
+                        <tr>
+                            <td><strong>${r.protocol}</strong></td>
+                            <td style="color: #10b981">${r.supply_apy.toFixed(2)}%</td>
+                            <td style="color: #ef4444">${r.borrow_apy.toFixed(2)}%</td>
+                            <td>$${r.tvl_b.toFixed(1)}B</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                        <div style="width: ${r.util_pct}%; height: 100%; background: var(--accent); border-radius: 2px;"></div>
+                                    </div>
+                                    <span>${r.util_pct}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    ratesBody.innerHTML += row;
+                });
+
+                const feed = document.getElementById('live-feed');
+                feed.innerHTML = '';
+                data.feed.forEach(f => {
+                    const item = `
+                        <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.02); border-radius: 0.5rem; border-left: 3px solid ${f.type === 'liq' ? '#ef4444' : '#3b82f6'}">
+                            <span style="color: var(--text-dim)">[${f.timestamp}]</span> 
+                            <span style="color: ${f.type === 'liq' ? '#ef4444' : '#60a5fa'}">${f.detail}</span> 
+                            <strong>${f.asset}</strong> | ${f.amount}
+                        </div>
+                    `;
+                    feed.innerHTML += item;
+                });
+
+            } catch (err) {
+                console.error("Failed to fetch market data", err);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML += `<div class="message"><span class="user-prompt">NBS-1></span> ${message}</div>`;
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await response.json();
+                
+                if (data.response) {
+                    chatMessages.innerHTML += `<div class="message"><span class="gemini-prompt">Gemini:</span> ${data.response}</div>`;
+                } else {
+                    chatMessages.innerHTML += `<div class="message" style="color: #ef4444">Error: ${data.error}</div>`;
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) {
+                chatMessages.innerHTML += `<div class="message" style="color: #ef4444">Connection Failed</div>`;
+            }
+        }
+
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('chat-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+        fetchMarketData();
+        setInterval(fetchMarketData, 10000);
+    </script>
+</body>
+</html>
