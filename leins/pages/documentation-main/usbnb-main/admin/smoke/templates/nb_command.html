@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NB-COMMAND | NetworkBuster Nexus</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        :root {
+            --primary: #0ff;
+            --bg: #050510;
+            --green: #00ff88;
+            --red: #ff003c;
+            --warn: #ffb300;
+            --dim: #1a1a2e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--green);
+            font-family: 'Share Tech Mono', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TITLE BAR */
+        .titlebar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,255,136,0.04);
+            border-bottom: 1px solid rgba(0,255,136,0.2);
+            padding: 10px 20px;
+            flex-shrink: 0;
+        }
+        .titlebar-left { display: flex; align-items: center; gap: 14px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.r { background: var(--red); }
+        .dot.y { background: var(--warn); }
+        .dot.g { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .title-text {
+            color: var(--green); font-size: 13px; letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+        .titlebar-right { display: flex; gap: 10px; align-items: center; }
+        .back-btn {
+            text-decoration: none; color: var(--primary);
+            border: 1px solid rgba(0,255,255,0.3); padding: 5px 12px;
+            border-radius: 4px; font-size: 12px; transition: all 0.2s;
+        }
+        .back-btn:hover { background: var(--primary); color: #000; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--green); box-shadow: 0 0 8px var(--green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+        }
+
+        /* TERMINAL BODY */
+        .terminal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            scroll-behavior: smooth;
+        }
+        .terminal-body::-webkit-scrollbar { width: 4px; }
+        .terminal-body::-webkit-scrollbar-thumb { background: rgba(0,255,136,0.3); border-radius: 2px; }
+
+        /* OUTPUT LINES */
+        .line { line-height: 1.7; font-size: 14px; white-space: pre-wrap; word-break: break-all; }
+        .line.sys { color: rgba(0,255,136,0.4); }
+        .line.info { color: var(--primary); }
+        .line.ok { color: var(--green); }
+        .line.err { color: var(--red); }
+        .line.warn { color: var(--warn); }
+        .line.cmd { color: #fff; }
+        .prompt-char { color: var(--green); }
+        .line.banner { color: var(--green); font-size: 13px; opacity: 0.8; }
+
+        /* INPUT ROW */
+        .input-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-top: 1px solid rgba(0,255,136,0.15);
+            background: rgba(0,0,0,0.4);
+            flex-shrink: 0;
+            gap: 10px;
+        }
+        .prompt {
+            color: var(--green);
+            font-size: 14px;
+            white-space: nowrap;
+            text-shadow: 0 0 8px rgba(0,255,136,0.5);
+        }
+        .cmd-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            caret-color: var(--green);
+        }
+        .cmd-input::placeholder { color: rgba(255,255,255,0.15); }
+    </style>
+</head>
+<body>
+
+    <div class="titlebar">
+        <div class="titlebar-left">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+            <span class="title-text">NB-COMMAND /// NETWORKBUSTER TERMINAL v1.0</span>
+        </div>
+        <div class="titlebar-right">
+            <div class="status-dot"></div>
+            <span style="font-size:11px;color:rgba(0,255,136,0.5);letter-spacing:2px;">UPLINK ACTIVE</span>
+            <a href="/dashboard" class="back-btn">◄ HUB</a>
+        </div>
+    </div>
+
+    <div class="terminal-body" id="output"></div>
+
+    <div class="input-row">
+        <span class="prompt">NB@NEXUS:~$</span>
+        <input
+            class="cmd-input"
+            id="cmd-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="type a command or 'help'"
+            autofocus
+        />
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('cmd-input');
+        let history = [];
+        let histIdx = -1;
+
+        const BANNER = [
+            "  ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗",
+            "  ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝",
+            "  ██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗",
+            "  ██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║",
+            "  ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║",
+            "  ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝",
+            "",
+            "  NB-COMMAND /// MOON 2 MARS DEEP SPACE AI NETWORK",
+            "  Cislunar Nexus — Secure Terminal v1.0",
+            "  Type 'help' to list available commands.",
+            "",
+        ];
+
+        const COMMANDS = {
+            help: () => [
+                { t:'info', v: '  Available commands:' },
+                { t:'ok',   v: '  status          — Get system state from M2M middleware' },
+                { t:'ok',   v: '  telemetry        — Live CPU / Memory from middleware' },
+                { t:'ok',   v: '  push <cpu> <mem> — Inject telemetry into middleware' },
+                { t:'ok',   v: '  ping             — Ping the middleware health endpoint' },
+                { t:'ok',   v: '  nodes            — List connected M2M nodes' },
+                { t:'ok',   v: '  clear            — Clear the terminal' },
+                { t:'ok',   v: '  banner           — Show the boot banner' },
+                { t:'ok',   v: '  date             — Show current UTC time' },
+                { t:'ok',   v: '  whoami           — Identity protocol' },
+            ],
+
+            status: async () => {
+                try {
+                    const r = await fetch('/api/system-state');
+                    const d = await r.json();
+                    return [
+                        { t:'info', v: '  [SYSTEM STATE]' },
+                        { t:'ok',   v: `  CPU     : ${d.cpu}%` },
+                        { t:'ok',   v: `  Memory  : ${d.memory}%` },
+                        { t:'ok',   v: `  Source  : ${d.source}` },
+                    ];
+                } catch { return [{ t:'err', v: '  ERR: Middleware unreachable.' }]; }
+            },
+
+            telemetry: async () => {
+                try {
+                    const r = await fetch('/api/system-state');
+                    const d = await r.json();
+                    const cpuBar = bar(d.cpu);
+                    const memBar = bar(d.memory);
+                    return [
+                        { t:'info', v: '  [LIVE TELEMETRY]' },
+                        { t:'ok',   v: `  CPU  [${cpuBar}] ${d.cpu}%` },
+                        { t:'ok',   v: `  MEM  [${memBar}] ${d.memory}%` },
+                    ];
+                } catch { return [{ t:'err', v: '  ERR: Cannot fetch telemetry.' }]; }
+            },
+
+            ping: async () => {
+                const t0 = performance.now();
+                try {
+                    await fetch('/health');
+                    const ms = (performance.now() - t0).toFixed(1);
+                    return [{ t:'ok', v: `  PONG from NB-Middleware — ${ms}ms` }];
+                } catch { return [{ t:'err', v: '  ERR: Middleware not responding.' }]; }
+            },
+
+            nodes: () => [
+                { t:'info', v: '  [CONNECTED M2M NODES]' },
+                { t:'ok',   v: '  NODE-01 :: moon2mars-ai-01   :: ACTIVE  :: 192.168.1.14' },
+                { t:'ok',   v: '  NODE-07 :: sat-gpu-cluster-b :: ACTIVE  :: 192.168.1.22' },
+                { t:'warn', v: '  NODE-03 :: luna-relay-eu     :: STANDBY :: 10.0.0.88' },
+            ],
+
+            date: () => [
+                { t:'ok', v: `  UTC: ${new Date().toUTCString()}` }
+            ],
+
+            whoami: () => [
+                { t:'info', v: '  OPERATOR: CLEANSKIIER27' },
+                { t:'ok',   v: '  CLEARANCE: CISLUNAR-ALPHA' },
+                { t:'ok',   v: '  NODE: NB-NEXUS-07-COMMAND' },
+            ],
+
+            banner: () => BANNER.map(v => ({ t: 'banner', v })),
+
+            clear: () => { output.innerHTML = ''; return []; },
+        };
+
+        function bar(pct) {
+            const filled = Math.round(pct / 5);
+            return '█'.repeat(filled) + '░'.repeat(20 - filled);
+        }
+
+        function print(lines) {
+            lines.forEach(({ t, v }) => {
+                const div = document.createElement('div');
+                div.className = `line ${t}`;
+                div.textContent = v;
+                output.appendChild(div);
+            });
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function printCmd(cmd) {
+            const div = document.createElement('div');
+            div.className = 'line cmd';
+            div.innerHTML = `<span class="prompt-char">NB@NEXUS:~$</span> ${cmd}`;
+            output.appendChild(div);
+        }
+
+        async function handleCommand(raw) {
+            const parts = raw.trim().split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            // push command with args
+            if (cmd === 'push') {
+                if (args.length < 2) {
+                    print([{ t:'err', v: '  Usage: push <cpu> <mem>' }]);
+                    return;
+                }
+                try {
+                    const r = await fetch('/api/m2m/telemetry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-API-KEY': 'NEXUS-77X-AUTH' },
+                        body: JSON.stringify({ cpu: parseFloat(args[0]), memory: parseFloat(args[1]) })
+                    });
+                    const d = await r.json();
+                    print([{ t:'ok', v: `  Middleware ack: ${d.status}` }]);
+                } catch { print([{ t:'err', v: '  ERR: Could not reach middleware.' }]); }
+                return;
+            }
+
+            if (COMMANDS[cmd]) {
+                const result = await COMMANDS[cmd](args);
+                if (result && result.length) print(result);
+            } else if (cmd) {
+                print([{ t:'err', v: `  command not found: ${cmd}. Type 'help' for a list.` }]);
+            }
+        }
+
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const val = input.value.trim();
+                if (val) {
+                    history.unshift(val);
+                    histIdx = -1;
+                    printCmd(val);
+                    await handleCommand(val);
+                    input.value = '';
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+            if (e.key === 'ArrowUp') {
+                histIdx = Math.min(histIdx + 1, history.length - 1);
+                input.value = history[histIdx] || '';
+            }
+            if (e.key === 'ArrowDown') {
+                histIdx = Math.max(histIdx - 1, -1);
+                input.value = histIdx === -1 ? '' : history[histIdx];
+            }
+        });
+
+        // Boot sequence
+        print(BANNER.map(v => ({ t: 'banner', v })));
+        print([{ t: 'sys', v: `  [${new Date().toUTCString()}] Terminal session initialized.` }]);
+    </script>
+</body>
+</html>

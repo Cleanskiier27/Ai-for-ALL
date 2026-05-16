@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT-GPU Node | NetworkBuster Nexus</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        :root {
+            --primary: #0ff;
+            --accent: #b400ff;
+            --bg: #050510;
+            --glass: rgba(0, 255, 255, 0.03);
+            --warn: #ffb300;
+            --danger: #ff003c;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .grid-bg {
+            position: fixed;
+            inset: -50%;
+            background-image:
+                linear-gradient(rgba(180, 0, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(180, 0, 255, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px);
+            animation: moveGrid 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes moveGrid {
+            0%   { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
+        }
+        .scanline {
+            position: fixed; width: 100%; height: 100px;
+            background: linear-gradient(0deg, transparent 0%, rgba(180,0,255,0.08) 50%, transparent 100%);
+            animation: scanline 5s linear infinite; pointer-events: none; z-index: 1;
+        }
+        @keyframes scanline { 0% { top: -100px; } 100% { top: 100%; } }
+
+        .wrapper { position: relative; z-index: 10; padding: 24px; }
+
+        /* HEADER */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(180,0,255,0.3);
+            padding-bottom: 20px; margin-bottom: 28px;
+        }
+        .header h1 {
+            color: var(--accent);
+            letter-spacing: 4px; text-transform: uppercase; font-size: 22px;
+            text-shadow: 0 0 14px rgba(180,0,255,0.7);
+        }
+        .header-right { display: flex; gap: 12px; align-items: center; }
+        .badge {
+            padding: 6px 14px; border-radius: 4px; font-size: 12px;
+            border: 1px solid var(--accent); color: var(--accent);
+            background: rgba(180,0,255,0.07); letter-spacing: 2px;
+        }
+        .badge.online { border-color: #0f0; color: #0f0; background: rgba(0,255,0,0.05); }
+        .back-btn {
+            text-decoration: none; color: var(--primary);
+            border: 1px solid var(--primary); padding: 8px 16px;
+            border-radius: 4px; transition: all 0.3s;
+        }
+        .back-btn:hover { background: var(--primary); color: #000; }
+
+        /* GRID */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+
+        /* CARDS */
+        .card {
+            background: var(--glass);
+            border: 1px solid rgba(180,0,255,0.15);
+            border-radius: 8px; padding: 24px;
+            backdrop-filter: blur(8px);
+        }
+        .card.accent-border { border-color: rgba(0,255,255,0.2); }
+        .card-label {
+            font-size: 11px; letter-spacing: 3px;
+            color: rgba(180,0,255,0.7); margin-bottom: 10px; text-transform: uppercase;
+        }
+        .card-value {
+            font-size: 36px; color: var(--accent);
+            text-shadow: 0 0 10px rgba(180,0,255,0.5); font-weight: bold;
+        }
+        .card-value.cyan { color: var(--primary); text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+        .card-value.warn { color: var(--warn); text-shadow: 0 0 10px rgba(255,179,0,0.5); }
+        .card-sub { font-size: 12px; color: #666; margin-top: 6px; }
+
+        /* PROGRESS BARS */
+        .bar-group { margin-bottom: 18px; }
+        .bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+        .bar-label { color: #888; letter-spacing: 1px; }
+        .bar-val { color: var(--primary); }
+        .bar-track {
+            width: 100%; height: 8px; background: rgba(255,255,255,0.05);
+            border-radius: 4px; overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--primary));
+            transition: width 1s ease;
+            box-shadow: 0 0 8px rgba(0,255,255,0.4);
+        }
+        .bar-fill.warn { background: linear-gradient(90deg, #ff8800, var(--warn)); }
+        .bar-fill.danger { background: linear-gradient(90deg, #ff003c, #ff6060); }
+
+        /* CORE GRID */
+        .core-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .core-cell {
+            border: 1px solid rgba(180,0,255,0.2);
+            border-radius: 4px; padding: 12px; text-align: center;
+            background: rgba(180,0,255,0.04); transition: all 0.3s;
+        }
+        .core-cell:hover { border-color: var(--accent); background: rgba(180,0,255,0.1); }
+        .core-id { font-size: 11px; color: #666; margin-bottom: 4px; }
+        .core-temp { font-size: 16px; }
+        .core-temp.hot { color: var(--warn); }
+        .core-temp.critical { color: var(--danger); }
+        .core-temp.ok { color: #0f0; }
+
+        /* LOG */
+        .log-box {
+            height: 160px; overflow-y: auto; padding: 12px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 4px; font-size: 12px; line-height: 1.8;
+        }
+        .log-box::-webkit-scrollbar { width: 4px; }
+        .log-box::-webkit-scrollbar-thumb { background: rgba(180,0,255,0.4); border-radius: 2px; }
+        .log-entry { color: #666; }
+        .log-entry span { color: var(--primary); margin-right: 8px; }
+        .log-entry.warn span { color: var(--warn); }
+        .log-entry.ok span { color: #0f0; }
+
+        /* TITLE SECTIONS */
+        .section-title {
+            font-size: 12px; letter-spacing: 3px; color: var(--accent);
+            text-transform: uppercase; margin-bottom: 14px;
+            border-left: 2px solid var(--accent); padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="scanline"></div>
+
+    <div class="wrapper">
+        <!-- HEADER -->
+        <div class="header">
+            <div>
+                <h1>SAT-GPU Processing Node</h1>
+                <div style="font-size:12px;color:#666;margin-top:4px;letter-spacing:2px;">CISLUNAR ORBITAL COMPUTE CLUSTER /// NODE-07-B</div>
+            </div>
+            <div class="header-right">
+                <span class="badge online" id="status-badge">● ONLINE</span>
+                <span class="badge" id="uptime-badge">UP: 00:00:00</span>
+                <a href="/dashboard" class="back-btn">◄ HUB</a>
+            </div>
+        </div>
+
+        <!-- TOP METRICS -->
+        <div class="grid-4" style="margin-bottom:20px;">
+            <div class="card">
+                <div class="card-label">GPU CORE LOAD</div>
+                <div class="card-value" id="gpu-load">--%</div>
+                <div class="card-sub">Current utilization</div>
+            </div>
+            <div class="card">
+                <div class="card-label">VRAM USED</div>
+                <div class="card-value cyan" id="vram-val">-- GB</div>
+                <div class="card-sub" id="vram-sub">of -- GB total</div>
+            </div>
+            <div class="card">
+                <div class="card-label">CORE TEMP</div>
+                <div class="card-value warn" id="gpu-temp">-- °C</div>
+                <div class="card-sub">Junction temperature</div>
+            </div>
+            <div class="card">
+                <div class="card-label">THROUGHPUT</div>
+                <div class="card-value" id="throughput">-- TFLOPS</div>
+                <div class="card-sub">FP16 compute</div>
+            </div>
+        </div>
+
+        <!-- BARS + CORE MAP -->
+        <div class="grid-2">
+            <div class="card accent-border">
+                <div class="section-title">Resource Allocation</div>
+                <div class="bar-group">
+                    <div class="bar-header">
+                        <span class="bar-label">GPU CORE</span>
+                        <span class="bar-val" id="bar-gpu-val">--%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-gpu" style="width:0%"></div></div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-header">
+                        <span class="bar-label">VRAM</span>
+                        <span class="bar-val" id="bar-vram-val">--%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-vram" style="width:0%"></div></div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-header">
+                        <span class="bar-label">THERMAL</span>
+                        <span class="bar-val" id="bar-temp-val">--%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill warn" id="bar-temp" style="width:0%"></div></div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-header">
+                        <span class="bar-label">POWER DRAW</span>
+                        <span class="bar-val" id="bar-pwr-val">-- W</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill danger" id="bar-pwr" style="width:0%"></div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Core Temperature Map</div>
+                <div class="core-grid" id="core-grid"></div>
+            </div>
+        </div>
+
+        <!-- ACTIVITY LOG -->
+        <div class="card" style="margin-top:20px;">
+            <div class="section-title">Satellite Uplink Activity Log</div>
+            <div class="log-box" id="log-box"></div>
+        </div>
+    </div>
+
+    <script>
+        const LOG_MESSAGES = [
+            ["ok",   "INFERENCE_JOB completed: batch_7829 — 14.2ms/frame"],
+            ["ok",   "VRAM defrag pass complete. Recovered 312MB"],
+            ["warn", "Thermal throttle event at 92°C. Duration: 120ms"],
+            ["ok",   "M2M Uplink confirmed: NEXUS-77X handshake OK"],
+            ["ok",   "Model checkpoint saved to SAT-STORE://models/v4.3.bin"],
+            ["warn", "ECC memory event detected on DIMM-B3. Self-corrected."],
+            ["ok",   "Deep space signal decoded: 1024 tokens processed"],
+            ["ok",   "CUDA kernel launch successful. Grid: 512x512"],
+        ];
+
+        let logIdx = 0;
+        let startTime = Date.now();
+
+        function pad(n) { return String(n).padStart(2,'0'); }
+
+        function updateUptime() {
+            const s = Math.floor((Date.now() - startTime) / 1000);
+            const h = Math.floor(s / 3600), m = Math.floor((s % 3600)/60), sec = s % 60;
+            document.getElementById('uptime-badge').innerText = `UP: ${pad(h)}:${pad(m)}:${pad(sec)}`;
+        }
+
+        function buildCoreGrid() {
+            const grid = document.getElementById('core-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 16; i++) {
+                const temp = Math.floor(Math.random() * 30 + 65);
+                const cls = temp >= 90 ? 'critical' : temp >= 80 ? 'hot' : 'ok';
+                grid.innerHTML += `
+                  <div class="core-cell">
+                    <div class="core-id">CU-${String(i).padStart(2,'0')}</div>
+                    <div class="core-temp ${cls}">${temp}°</div>
+                  </div>`;
+            }
+        }
+
+        function addLog() {
+            const [type, msg] = LOG_MESSAGES[logIdx % LOG_MESSAGES.length];
+            logIdx++;
+            const box = document.getElementById('log-box');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            div.innerHTML = `<span>[${time}]</span>${msg}`;
+            box.prepend(div);
+            if (box.children.length > 30) box.removeChild(box.lastChild);
+        }
+
+        function updateMetrics() {
+            const gpuLoad = Math.floor(Math.random() * 35 + 60);
+            const vramPct = Math.floor(Math.random() * 20 + 55);
+            const vramGB  = (vramPct / 100 * 24).toFixed(1);
+            const temp    = Math.floor(Math.random() * 15 + 75);
+            const tempPct = Math.floor((temp / 110) * 100);
+            const tflops  = (Math.random() * 5 + 78).toFixed(1);
+            const pwr     = Math.floor(Math.random() * 50 + 300);
+            const pwrPct  = Math.floor((pwr / 450) * 100);
+
+            document.getElementById('gpu-load').innerText = gpuLoad + '%';
+            document.getElementById('vram-val').innerText = vramGB + ' GB';
+            document.getElementById('vram-sub').innerText = 'of 24 GB total';
+            document.getElementById('gpu-temp').innerText = temp + ' °C';
+            document.getElementById('throughput').innerText = tflops + ' TFLOPS';
+
+            document.getElementById('bar-gpu').style.width = gpuLoad + '%';
+            document.getElementById('bar-gpu-val').innerText = gpuLoad + '%';
+            document.getElementById('bar-vram').style.width = vramPct + '%';
+            document.getElementById('bar-vram-val').innerText = vramPct + '%';
+            document.getElementById('bar-temp').style.width = tempPct + '%';
+            document.getElementById('bar-temp-val').innerText = temp + '°C';
+            document.getElementById('bar-pwr').style.width = pwrPct + '%';
+            document.getElementById('bar-pwr-val').innerText = pwr + ' W';
+
+            buildCoreGrid();
+        }
+
+        // Init
+        updateMetrics();
+        addLog();
+        setInterval(updateMetrics, 2000);
+        setInterval(addLog, 3500);
+        setInterval(updateUptime, 1000);
+    </script>
+</body>
+</html>

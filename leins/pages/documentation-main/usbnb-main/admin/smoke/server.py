@@ -68,6 +68,14 @@ def forensics():
 def yield_ops():
     return serve_template('yield_ops.html')
 
+@app.route('/sat_gpu')
+def sat_gpu():
+    return serve_template('sat_gpu.html')
+
+@app.route('/nb_command')
+def nb_command():
+    return serve_template('nb_command.html')
+
 @app.route('/lien_registry')
 def lien_registry():
     return serve_template('lien_registry.html')
