@@ -1,0 +1,43 @@
+name: Publish AI-for-All
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: advice.defaultBranchName
+  GIT_CONFIG_VALUE_0: 'false'
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate public landing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s index.html
+          test -s README.md
+          ! grep -R -n 'NEXUS-77X-AUTH' . --exclude-dir=.git
+          python3 -m py_compile $(find networkbuster-session-20260405-data leins -name '*.py' -print)
+      - name: Publish gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          publish_dir=$(mktemp -d)
+          cp index.html README.md "$publish_dir/"
+          git switch --orphan gh-pages
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$publish_dir/." .
+          touch .nojekyll
+          git add -A
+          git commit -m "Publish AI-for-All ${GITHUB_SHA}" >/dev/null
+          git push --force origin gh-pages
