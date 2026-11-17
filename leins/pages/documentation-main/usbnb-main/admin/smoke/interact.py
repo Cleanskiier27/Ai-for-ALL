@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """
 NetworkBuster M2M Nexus - Redundant Interaction Script
 Moon 2 Mars Deep Space AI Network
@@ -19,7 +20,7 @@ import urllib.error
 import webbrowser
 
 MIDDLEWARE_HOST = "http://localhost:8080"
-API_KEY = "NEXUS-77X-AUTH"
+API_KEY = os.environ.get("NETWORKBUSTER_API_KEY", "")
 HEADERS = {"X-API-KEY": API_KEY, "Content-Type": "application/json"}
 
 def make_request(method, path, body=None):

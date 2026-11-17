@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -269,7 +269,7 @@
                 try {
                     const r = await fetch('/api/m2m/telemetry', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-API-KEY': 'NEXUS-77X-AUTH' },
+                        headers: { 'Content-Type': 'application/json', 'X-API-KEY': window.NETWORKBUSTER_API_KEY || '' },
                         body: JSON.stringify({ cpu: parseFloat(args[0]), memory: parseFloat(args[1]) })
                     });
                     const d = await r.json();

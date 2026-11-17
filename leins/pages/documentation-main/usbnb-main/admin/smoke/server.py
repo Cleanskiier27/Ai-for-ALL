@@ -1,8 +1,8 @@
+﻿import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import psutil
 import time
-import os
 
 app = Flask(__name__)
 CORS(app)
@@ -19,7 +19,7 @@ system_state = {
     "active_machines": 0
 }
 
-API_KEY = "NEXUS-77X-AUTH"
+API_KEY = os.environ.get("NETWORKBUSTER_API_KEY", "")
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 
 # Middleware to check auth on M2M routes only

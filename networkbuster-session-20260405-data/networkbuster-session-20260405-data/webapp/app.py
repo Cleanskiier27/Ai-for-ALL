@@ -32,9 +32,12 @@ def market_data():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.json
-    message = data.get('message', '')
-    api_key = data.get('api_key', os.environ.get("GEMINI_API_KEY", ""))
+    data = request.get_json(silent=True) or {}
+    message = str(data.get('message', '')).strip()
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+
+    if not message:
+        return jsonify({"error": "A message is required"}), 400
     
     if not api_key:
         return jsonify({"error": "No API key provided"}), 400

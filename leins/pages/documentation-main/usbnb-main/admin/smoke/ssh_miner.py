@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """
 NetworkBuster SSH Telemetry Miner
 Moon 2 Mars Deep Space AI Network
@@ -52,7 +53,7 @@ NODES = [
 ]
 
 MIDDLEWARE_URL = "http://localhost:8080/api/m2m/telemetry"
-API_KEY        = "NEXUS-77X-AUTH"
+API_KEY = os.environ.get("NETWORKBUSTER_API_KEY", "")
 POLL_INTERVAL  = 5  # seconds between polls
 
 # Commands to run on each remote node (standard Linux)
